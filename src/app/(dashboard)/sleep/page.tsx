@@ -13,8 +13,26 @@ interface SleepEntry {
   type: 'nap' | 'night'
 }
 
+interface SleepRecommendation {
+  label: string
+  total: string
+  naps: string
+  night: string
+}
+
+function getSleepRecommendation(ageMonths: number): SleepRecommendation {
+  if (ageMonths < 1) return { label: 'Newborn (0–1 month)', total: '14–17 hours', naps: '3–5 short naps', night: 'wakes every 2–3 hours' }
+  if (ageMonths < 3) return { label: '1–3 months', total: '14–17 hours', naps: '3–4 naps daily', night: '4–6 hour stretches' }
+  if (ageMonths < 6) return { label: '3–6 months', total: '12–15 hours', naps: '3 naps (morning, midday, late afternoon)', night: 'longest stretch 5–8 hours' }
+  if (ageMonths < 9) return { label: '6–9 months', total: '12–15 hours', naps: '2–3 naps daily', night: '6–10 hour stretches' }
+  if (ageMonths < 12) return { label: '9–12 months', total: '12–14 hours', naps: '2 naps (morning + afternoon)', night: 'up to 10–12 hours' }
+  if (ageMonths < 18) return { label: '12–18 months', total: '11–14 hours', naps: '1–2 naps daily', night: '10–12 hours' }
+  if (ageMonths < 36) return { label: '18 months – 3 years', total: '11–14 hours', naps: '1 nap (1–2 hours)', night: '10–12 hours' }
+  return { label: '3+ years', total: '10–13 hours', naps: 'optional 1 nap', night: '10–12 hours' }
+}
+
 export default function SleepPage() {
-  const { baby } = useBaby()
+  const { baby, ageMonths } = useBaby()
   const [entries, setEntries] = useState<SleepEntry[]>([])
   const [activeSleep, setActiveSleep] = useState<SleepEntry | null>(null)
   const [elapsed, setElapsed] = useState(0)
@@ -102,6 +120,34 @@ export default function SleepPage() {
       <AppBar title="Sleep" showBack />
 
       <div style={{ padding: '20px 16px' }}>
+        {/* Sleep recommendation card */}
+        {(() => {
+          const rec = getSleepRecommendation(ageMonths)
+          return (
+            <div style={{ background: '#EDE9F8', borderRadius: 16, padding: '14px 16px', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 18 }}>🌙</span>
+                <p style={{ fontSize: 13, fontWeight: 800, color: '#9B8EC4' }}>Recommended sleep · {rec.label}</p>
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ background: 'white', borderRadius: 10, padding: '8px 12px', flex: 1, minWidth: 90 }}>
+                  <p style={{ fontSize: 11, color: '#6B6B7B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Total / day</p>
+                  <p style={{ fontSize: 14, fontWeight: 800, color: '#2D2D3A' }}>{rec.total}</p>
+                </div>
+                <div style={{ background: 'white', borderRadius: 10, padding: '8px 12px', flex: 1, minWidth: 90 }}>
+                  <p style={{ fontSize: 11, color: '#6B6B7B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Naps</p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#2D2D3A' }}>{rec.naps}</p>
+                </div>
+                <div style={{ background: 'white', borderRadius: 10, padding: '8px 12px', flex: 1, minWidth: 90 }}>
+                  <p style={{ fontSize: 11, color: '#6B6B7B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Night</p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#2D2D3A' }}>{rec.night}</p>
+                </div>
+              </div>
+              <p style={{ fontSize: 11, color: '#9B8EC4', marginTop: 8, fontStyle: 'italic' }}>Source: WHO · AAP · IAP — always consult your paediatrician</p>
+            </div>
+          )
+        })()}
+
         {/* Active sleep timer */}
         {activeSleep ? (
           <div style={{

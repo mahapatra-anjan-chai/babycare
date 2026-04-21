@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
-import { Home, Baby, Moon, Droplets, MoreHorizontal, Star, TrendingUp, Lightbulb, ShoppingBag, Settings, Syringe, HeartPulse } from 'lucide-react'
+import { Home, Baby, Moon, Droplets, MoreHorizontal, Star, TrendingUp, Lightbulb, ShoppingBag, Settings, Syringe, HeartPulse, MessageCircle } from 'lucide-react'
 import { useBaby } from '@/contexts/BabyContext'
 
 const NAV_TABS = [
@@ -13,11 +13,12 @@ const NAV_TABS = [
 ]
 
 const MORE_ITEMS_BORN = [
-  { href: '/milestones', icon: Star,        label: 'Milestones',    color: '#F9A8D4' },
-  { href: '/milestones', icon: TrendingUp,  label: 'Growth Charts', color: '#86EFAC' },
-  { href: '/vaccines',   icon: Syringe,     label: 'Vaccines',      color: '#FCA5A5' },
-  { href: '/tips',       icon: Lightbulb,   label: 'Care Tips (AI)',color: '#FCD34D' },
-  { href: '/products',   icon: ShoppingBag, label: 'Products (AI)', color: '#9B8EC4' },
+  { href: '/milestones', icon: Star,           label: 'Milestones',    color: '#F9A8D4' },
+  { href: '/milestones', icon: TrendingUp,     label: 'Growth Charts', color: '#86EFAC' },
+  { href: '/vaccines',   icon: Syringe,        label: 'Vaccines',      color: '#FCA5A5' },
+  { href: '/chat',       icon: MessageCircle,  label: 'Ask AI',        color: '#9B8EC4' },
+  { href: '/tips',       icon: Lightbulb,      label: 'Care Tips (AI)',color: '#FCD34D' },
+  { href: '/products',   icon: ShoppingBag,    label: 'Products (AI)', color: '#7C3AED' },
 ]
 
 const MORE_ITEMS_EXPECTING = [

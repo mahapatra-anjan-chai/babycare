@@ -27,13 +27,162 @@ function getWeekData(week: number) {
 
 const TABS = ['👶 Baby', '🥗 Nutrition', '🏃 Activity']
 
+const CHECKLISTS: Record<string, { section: string; items: string[] }[]> = {
+  'Hospital Bag': [
+    {
+      section: 'Mum\'s Items',
+      items: [
+        'Comfortable nightgown or hospital gown',
+        'Nursing bra & breast pads',
+        'Comfortable slippers & socks',
+        'Toiletries (shampoo, soap, toothbrush)',
+        'Snacks & drinks for labour',
+        'Phone charger & earphones',
+        'Insurance / Aadhaar / hospital papers',
+        'Change of clothes for going home',
+        'Hair ties & lip balm',
+      ],
+    },
+    {
+      section: 'Baby\'s Items',
+      items: [
+        '2–3 newborn onesies',
+        'Swaddle blankets (2–3 muslin)',
+        'Newborn nappies (pack of 20)',
+        'Baby hat & mittens',
+        'Car seat (installed before due date)',
+        'Nappy cream',
+      ],
+    },
+    {
+      section: 'Partner\'s Items',
+      items: [
+        'Change of clothes (pack for 2 nights)',
+        'Phone charger',
+        'Snacks & water',
+        'Camera or phone for photos',
+        'List of people to call/text',
+      ],
+    },
+  ],
+  'Nursery Setup': [
+    {
+      section: 'Sleep',
+      items: [
+        'Cot or bassinet with firm mattress',
+        'Fitted sheets (2–3)',
+        'Baby monitor (audio or video)',
+        'White noise machine',
+        'Blackout curtains',
+      ],
+    },
+    {
+      section: 'Changing Area',
+      items: [
+        'Changing table or mat',
+        'Nappy pail with lid',
+        'Nappies (stock up — newborns need 8–12/day)',
+        'Wipes (unscented)',
+        'Nappy cream (zinc-based)',
+      ],
+    },
+    {
+      section: 'On-the-go',
+      items: [
+        'Pram / stroller',
+        'Infant car seat (rear-facing)',
+        'Baby carrier or wrap',
+        'Changing bag with compartments',
+      ],
+    },
+  ],
+  'Feeding Prep': [
+    {
+      section: 'Breastfeeding',
+      items: [
+        'Nursing bras (2–3, correct size)',
+        'Breast pads (washable or disposable)',
+        'Nipple cream (lanolin-based)',
+        'Nursing pillow',
+        'Breast pump (electric recommended)',
+        'Milk storage bags',
+        'Attend a breastfeeding class before birth',
+      ],
+    },
+    {
+      section: 'Bottle Feeding',
+      items: [
+        'Wide-neck BPA-free bottles (4–6)',
+        'Formula (if not breastfeeding)',
+        'Electric bottle steriliser',
+        'Bottle brush',
+        'Bottle warmer',
+      ],
+    },
+    {
+      section: 'General',
+      items: [
+        'Burp cloths / muslin squares (6+)',
+        'Bibs (4–6)',
+        'High chair (for 6 months+, buy early)',
+      ],
+    },
+  ],
+  'Medical Prep': [
+    {
+      section: 'Before Birth',
+      items: [
+        'Find and register with a paediatrician',
+        'Write a birth plan (share with hospital)',
+        'Confirm hospital bag is packed by week 36',
+        'Take infant first aid course',
+        'Know the IAP vaccination schedule',
+        'Install car seat before due date',
+      ],
+    },
+    {
+      section: 'At-home Medicine Kit',
+      items: [
+        'Digital rectal thermometer',
+        'Nasal aspirator (e.g. NoseFrida)',
+        'Infant paracetamol (Calpol — ask paed)',
+        'Vitamin D drops (prescribed at birth)',
+        'Baby nail scissors or file',
+        'Baby-safe antiseptic cream',
+      ],
+    },
+    {
+      section: 'Vaccines at Birth (IAP)',
+      items: [
+        'BCG',
+        'Hepatitis B (Dose 1)',
+        'OPV 0',
+        'Confirm 6-week schedule with paediatrician',
+      ],
+    },
+  ],
+}
+
 export default function PregnancyPage() {
   const { baby, weeksPregnant, weeksUntilDue } = useBaby()
   const [week, setWeek] = useState(weeksPregnant || 12)
   const [tab, setTab] = useState('👶 Baby')
+  const [expandedSection, setExpandedSection] = useState<string | null>(null)
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
 
   const data = getWeekData(week)
   const trimester = week <= 12 ? 1 : week <= 27 ? 2 : 3
+
+  function toggleItem(key: string) {
+    setCheckedItems(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const SECTIONS = [
+    { emoji: '🧳', title: 'Hospital Bag', desc: 'Mum · Baby · Partner items' },
+    { emoji: '🛏️', title: 'Nursery Setup', desc: 'Cot, pram, car seat, monitor' },
+    { emoji: '🍼', title: 'Feeding Prep', desc: 'Breast pump, bottles, nursing bra' },
+    { emoji: '🏥', title: 'Medical Prep', desc: 'Paediatrician, birth plan, vaccines' },
+  ]
 
   return (
     <div>
@@ -102,36 +251,106 @@ export default function PregnancyPage() {
           </p>
         </div>
 
-        {/* Checklist shortcuts */}
+        {/* Preparation Checklists — accordion */}
         <h2 style={{ fontSize: 15, fontWeight: 800, color: '#2D2D3A', margin: '20px 0 12px' }}>Preparation Checklists</h2>
-        {[
-          { emoji: '🧳', title: 'Hospital Bag', desc: 'Mum · Baby · Partner items', done: false },
-          { emoji: '🛏️', title: 'Nursery Setup', desc: 'Cot, pram, car seat, monitor', done: false },
-          { emoji: '🍼', title: 'Feeding Prep', desc: 'Breast pump, bottles, nursing bra', done: false },
-          { emoji: '🏥', title: 'Medical Prep', desc: 'Paediatrician, birth plan, vaccines', done: false },
-        ].map(item => (
-          <div key={item.title} style={{
-            display: 'flex', alignItems: 'center', gap: 14,
-            background: 'white', borderRadius: 16, padding: '14px 16px', marginBottom: 8,
-            border: '1.5px solid #EBEBF0',
-          }}>
-            <span style={{ fontSize: 24 }}>{item.emoji}</span>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: '#2D2D3A' }}>{item.title}</p>
-              <p style={{ fontSize: 12, color: '#6B6B7B', marginTop: 2 }}>{item.desc}</p>
+
+        {SECTIONS.map(item => {
+          const isOpen = expandedSection === item.title
+          const allItems = (CHECKLISTS[item.title] ?? []).flatMap(s => s.items.map((it, i) => `${item.title}__${s.section}__${i}__${it}`))
+          const doneCount = allItems.filter(k => checkedItems[k]).length
+          const totalCount = allItems.length
+
+          return (
+            <div key={item.title} style={{ marginBottom: 8, borderRadius: 16, overflow: 'hidden', border: `1.5px solid ${isOpen ? '#9B8EC4' : '#EBEBF0'}` }}>
+              {/* Header row — tap to expand */}
+              <button
+                onClick={() => setExpandedSection(isOpen ? null : item.title)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                  background: isOpen ? '#F5F2FC' : 'white',
+                  padding: '14px 16px', border: 'none', cursor: 'pointer',
+                  fontFamily: 'inherit', textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: 24 }}>{item.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: '#2D2D3A' }}>{item.title}</p>
+                  <p style={{ fontSize: 12, color: '#6B6B7B', marginTop: 2 }}>
+                    {doneCount > 0 ? `${doneCount} / ${totalCount} packed` : item.desc}
+                  </p>
+                </div>
+                {/* Progress pill */}
+                {doneCount > 0 && (
+                  <span style={{
+                    background: '#22C55E', color: 'white', fontSize: 11, fontWeight: 700,
+                    borderRadius: 999, padding: '3px 8px',
+                  }}>
+                    {Math.round((doneCount / totalCount) * 100)}%
+                  </span>
+                )}
+                <svg
+                  width={16} height={16} viewBox="0 0 24 24" fill="none"
+                  stroke="#9B8EC4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  style={{ transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s ease', flexShrink: 0 }}
+                >
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </button>
+
+              {/* Expanded content */}
+              {isOpen && (
+                <div style={{ background: 'white', borderTop: '1px solid #F0EDF8', padding: '4px 0 12px' }}>
+                  {(CHECKLISTS[item.title] ?? []).map(group => (
+                    <div key={group.section} style={{ padding: '12px 16px 4px' }}>
+                      <p style={{ fontSize: 11, fontWeight: 800, color: '#9B8EC4', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                        {group.section}
+                      </p>
+                      {group.items.map((it, idx) => {
+                        const key = `${item.title}__${group.section}__${idx}__${it}`
+                        const checked = !!checkedItems[key]
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => toggleItem(key)}
+                            style={{
+                              width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                              padding: '9px 0', background: 'none', border: 'none',
+                              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                              borderBottom: '1px solid #F5F5F7',
+                            }}
+                          >
+                            <div style={{
+                              width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                              border: `2px solid ${checked ? '#22C55E' : '#D1D5DB'}`,
+                              background: checked ? '#22C55E' : 'white',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.15s ease',
+                            }}>
+                              {checked && (
+                                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </div>
+                            <span style={{
+                              fontSize: 14, color: checked ? '#6B6B7B' : '#2D2D3A',
+                              textDecoration: checked ? 'line-through' : 'none',
+                              fontWeight: checked ? 400 : 500,
+                              transition: 'all 0.15s ease',
+                            }}>
+                              {it}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <ChevronRightIcon size={16} color="#9B8EC4" />
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
-  )
-}
-
-function ChevronRightIcon({ size, color }: { size: number; color: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 18l6-6-6-6" />
-    </svg>
   )
 }

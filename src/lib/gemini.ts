@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!)
 
 export const geminiModel = genAI.getGenerativeModel({
-  model: 'gemini-1.5-flash',
+  model: 'gemini-2.5-flash',
   systemInstruction: `You are a medically accurate baby care assistant. All advice must be:
 - Clinically grounded and evidence-based
 - Referenced to recognised sources (Mayo Clinic, Cleveland Clinic, WHO, NHS, AAP, or Indian Academy of Pediatrics where relevant)
@@ -91,6 +91,52 @@ Return ONLY a JSON array with this exact structure:
   const jsonMatch = text.match(/\[[\s\S]*\]/)
   if (!jsonMatch) throw new Error('No JSON in Gemini response')
   return JSON.parse(jsonMatch[0])
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model'
+  content: string
+}
+
+export async function generateChatReply(
+  messages: ChatMessage[],
+  babyContext: { name: string; gender: string; ageMonths: number }
+): Promise<string> {
+  const chatModel = genAI.getGenerativeModel({
+    model: 'gemini-2.5-flash',
+    systemInstruction: `You are BabyCare AI, a friendly and knowledgeable baby care assistant for Indian parents.
+
+You ONLY answer questions about:
+- Baby feeding (breast, bottle, solids, amounts, schedules)
+- Diapers (frequency, colour, consistency, what's normal)
+- Baby sleep (patterns, naps, night waking, safe sleep)
+- Common baby medical conditions (fever, colic, rashes, constipation, colds, teething)
+- General baby development and milestones
+
+If asked about anything outside these topics, politely say: "I'm only able to help with baby feeding, sleep, diapers, and common health questions. Please ask your doctor for anything else."
+
+Always:
+- Use the baby's name (${babyContext.name}) to personalise answers
+- Keep answers concise — 3–5 sentences max
+- Reference IAP, WHO, or AAP when giving medical guidance
+- End medical answers with: "Always consult your paediatrician for personal advice."
+- Be warm, reassuring, and supportive
+
+Context: ${babyContext.name} is a ${babyContext.gender} baby, ${babyContext.ageMonths} months old, in India.`,
+  })
+
+  // Rolling window: last 4 messages only
+  const history = messages.slice(-4)
+  const chat = chatModel.startChat({
+    history: history.slice(0, -1).map(m => ({
+      role: m.role,
+      parts: [{ text: m.content }],
+    })),
+  })
+
+  const lastMessage = history[history.length - 1]
+  const result = await chat.sendMessage(lastMessage.content)
+  return result.response.text().trim()
 }
 
 export async function generatePregnancyTip(

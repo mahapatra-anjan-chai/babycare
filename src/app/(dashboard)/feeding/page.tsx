@@ -20,8 +20,28 @@ interface FeedEntry {
   logged_at: string
 }
 
+interface FeedRecommendation {
+  label: string
+  feeds: string
+  bottle: string
+  breast: string
+  solids: string | null
+}
+
+function getFeedRecommendation(ageMonths: number): FeedRecommendation {
+  if (ageMonths < 1)  return { label: 'Newborn (0–1m)',   feeds: '8–12 times/day',  bottle: '60–90ml per feed',    breast: '10–20 min each side',       solids: null }
+  if (ageMonths < 2)  return { label: '1–2 months',       feeds: '7–9 times/day',   bottle: '90–120ml per feed',   breast: '10–20 min each side',       solids: null }
+  if (ageMonths < 4)  return { label: '2–4 months',       feeds: '6–8 times/day',   bottle: '120–150ml per feed',  breast: '15–20 min each side',       solids: null }
+  if (ageMonths < 6)  return { label: '4–6 months',       feeds: '5–7 times/day',   bottle: '150–210ml per feed',  breast: '15–20 min per session',     solids: null }
+  if (ageMonths < 8)  return { label: '6–8 months',       feeds: '4–5 times/day',   bottle: '180–240ml per feed',  breast: '10–15 min per session',     solids: '2–3 small meals, start purees' }
+  if (ageMonths < 10) return { label: '8–10 months',      feeds: '3–4 times/day',   bottle: '180–240ml per feed',  breast: '10–15 min per session',     solids: '3 meals + 1–2 snacks, soft lumps ok' }
+  if (ageMonths < 12) return { label: '10–12 months',     feeds: '3–4 times/day',   bottle: '180–240ml per feed',  breast: '10–15 min per session',     solids: '3 meals + 2 snacks, finger foods' }
+  if (ageMonths < 18) return { label: '12–18 months',     feeds: '3–4 times/day',   bottle: '150–180ml (cow\'s milk ok)', breast: 'On demand',           solids: '3 meals + 2–3 snacks' }
+  return               { label: '18 months+',             feeds: '3 meals + snacks', bottle: '150–180ml max',      breast: 'On demand if continuing',   solids: '3 meals + 2 snacks, family foods' }
+}
+
 export default function FeedingPage() {
-  const { baby } = useBaby()
+  const { baby, ageMonths } = useBaby()
   const [tab, setTab] = useState<FeedType>('bottle')
   const [amount, setAmount] = useState(90)
   const [duration, setDuration] = useState(15)
@@ -84,6 +104,47 @@ export default function FeedingPage() {
           </button>
         ))}
       </div>
+
+      {/* Feed recommendation card */}
+      {(() => {
+        const rec = getFeedRecommendation(ageMonths)
+        const tooYoungForSolids = tab === 'solid' && ageMonths < 6
+        const tipText = tab === 'bottle' ? rec.bottle : tab === 'breast' ? rec.breast : rec.solids
+        const cardBg   = tooYoungForSolids ? '#FEF2F2' : '#FFF7ED'
+        const cardBdr  = tooYoungForSolids ? '#FCA5A5' : '#FED7AA'
+        const titleClr = tooYoungForSolids ? '#B91C1C' : '#C2410C'
+        return (
+          <div style={{ background: cardBg, borderRadius: 16, padding: '14px 16px', margin: '14px 16px 0', border: `1.5px solid ${cardBdr}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 16 }}>{tooYoungForSolids ? '⚠️' : '🍼'}</span>
+              <p style={{ fontSize: 13, fontWeight: 800, color: titleClr }}>
+                {tooYoungForSolids ? 'Not recommended yet' : `Recommended · ${rec.label}`}
+              </p>
+            </div>
+
+            {tooYoungForSolids ? (
+              <p style={{ fontSize: 13, color: '#B91C1C', lineHeight: 1.5 }}>
+                WHO and IAP recommend exclusive breast or formula feeding until <strong>6 months</strong>. Introducing solids earlier can increase allergy and choking risk.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ background: 'white', borderRadius: 10, padding: '8px 12px', flex: 1, minWidth: 80 }}>
+                  <p style={{ fontSize: 11, color: '#6B6B7B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Frequency</p>
+                  <p style={{ fontSize: 13, fontWeight: 800, color: '#2D2D3A' }}>{rec.feeds}</p>
+                </div>
+                <div style={{ background: 'white', borderRadius: 10, padding: '8px 12px', flex: 2, minWidth: 120 }}>
+                  <p style={{ fontSize: 11, color: '#6B6B7B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>
+                    {tab === 'bottle' ? 'Per Bottle' : tab === 'breast' ? 'Duration' : 'What to offer'}
+                  </p>
+                  <p style={{ fontSize: 13, fontWeight: 800, color: '#2D2D3A' }}>{tipText ?? '—'}</p>
+                </div>
+              </div>
+            )}
+
+            <p style={{ fontSize: 11, color: titleClr, marginTop: 8, fontStyle: 'italic' }}>Source: WHO · AAP · IAP — consult your paediatrician</p>
+          </div>
+        )
+      })()}
 
       {/* Form */}
       <div style={{ padding: '20px 16px' }}>

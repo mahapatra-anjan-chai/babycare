@@ -68,7 +68,33 @@ export function BabyProvider({ children }: { children: ReactNode }) {
 
   async function loadBaby() {
     setLoading(true)
-    if (!isSupabaseConfigured) { setLoading(false); return }
+    // Demo mode — no Supabase configured yet
+    if (!isSupabaseConfigured) {
+      setBaby({
+        id: 'demo',
+        user_id: 'demo',
+        name: 'Sonakshi',
+        date_of_birth: new Date(Date.now() - 98 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        due_date: null,
+        gender: 'girl',
+        status: 'born',
+        parent1_name: 'Priya',
+        parent2_name: 'Rahul',
+        photo_url: null,
+        created_at: new Date().toISOString(),
+      })
+      setStats({
+        avgFeedsPerDay: 6.2,
+        avgSleepHoursPerDay: 9.1,
+        avgDiapersPerDay: 5.8,
+        lastFeedType: 'bottle',
+        lastMilestoneAchieved: 'Smiles responsively at faces',
+        latestWeight: 5.4,
+        latestHeight: 61,
+      })
+      setLoading(false)
+      return
+    }
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
 

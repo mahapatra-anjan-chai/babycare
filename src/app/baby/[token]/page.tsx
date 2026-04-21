@@ -43,14 +43,14 @@ export default async function GrandparentPage({ params }: { params: Promise<{ to
     share.show_feeding ? supabase.from('feedings').select('*').eq('baby_id', share.baby_id).gte('logged_at', startOfDay) : { data: [] },
     share.show_sleep ? supabase.from('sleeps').select('*').eq('baby_id', share.baby_id).gte('started_at', startOfDay) : { data: [] },
     share.show_diapers ? supabase.from('diapers').select('*').eq('baby_id', share.baby_id).gte('logged_at', startOfDay) : { data: [] },
-    share.show_milestones ? supabase.from('milestones').select('title, achieved_at').eq('baby_id', share.baby_id).order('achieved_at', { ascending: false }).limit(3) : { data: [] },
+    share.show_milestones ? supabase.from('milestones').select('title, category, achieved_at').eq('baby_id', share.baby_id).order('achieved_at', { ascending: false }) : { data: [] },
     share.show_growth ? supabase.from('growth_records').select('weight_kg, height_cm, measured_at').eq('baby_id', share.baby_id).order('measured_at', { ascending: false }).limit(1) : { data: [] },
   ])
 
   const feeds = feedRes.data ?? []
   const sleeps = (sleepRes.data ?? []) as Array<{ started_at: string; ended_at: string | null }>
   const diapers = diaperRes.data ?? []
-  const milestones = (milestoneRes.data ?? []) as Array<{ title: string }>
+  const milestones = (milestoneRes.data ?? []) as Array<{ title: string; category: string; achieved_at: string }>
   const growth = (growthRes.data ?? []) as Array<{ weight_kg: number; height_cm: number }>
 
   const totalSleepHrs = sleeps.reduce((sum: number, s) => {
@@ -101,17 +101,72 @@ export default async function GrandparentPage({ params }: { params: Promise<{ to
       </div>
 
       {/* Milestones */}
-      {share.show_milestones && milestones.length > 0 && (
-        <div style={{ background: 'white', borderRadius: 24, padding: 24, marginBottom: 16, border: '1.5px solid #EBEBF0' }}>
-          <h2 style={{ fontSize: 15, fontWeight: 800, color: '#9B8EC4', marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Recent Milestones</h2>
-          {milestones.map((m, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < milestones.length - 1 ? '1px solid #F5F5F7' : 'none' }}>
-              <span style={{ fontSize: 18 }}>✅</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#2D2D3A' }}>{m.title}</span>
+      {share.show_milestones && milestones.length > 0 && (() => {
+        const categoryMeta: Record<string, { label: string; emoji: string; color: string }> = {
+          motor:     { label: 'Motor',     emoji: '🏃', color: '#FCA5A5' },
+          social:    { label: 'Social',    emoji: '😊', color: '#F9A8D4' },
+          language:  { label: 'Language',  emoji: '🗣️', color: '#93C5FD' },
+          cognitive: { label: 'Cognitive', emoji: '🧠', color: '#86EFAC' },
+        }
+        const grouped = milestones.reduce<Record<string, typeof milestones>>((acc, m) => {
+          const cat = m.category || 'motor'
+          acc[cat] = acc[cat] ?? []
+          acc[cat].push(m)
+          return acc
+        }, {})
+        return (
+          <div style={{ background: 'white', borderRadius: 24, padding: 24, marginBottom: 16, border: '1.5px solid #EBEBF0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 800, color: '#9B8EC4', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Milestones</h2>
+              <span style={{ fontSize: 13, fontWeight: 700, background: '#EDE9F8', color: '#9B8EC4', borderRadius: 999, padding: '3px 10px' }}>
+                {milestones.length} achieved ⭐
+              </span>
             </div>
-          ))}
-        </div>
-      )}
+            {Object.entries(grouped).map(([cat, items]) => {
+              const meta = categoryMeta[cat] ?? { label: cat, emoji: '⭐', color: '#D8D0F0' }
+              return (
+                <div key={cat} style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 800, color: '#6B6B7B',
+                      textTransform: 'uppercase', letterSpacing: '0.07em',
+                    }}>
+                      {meta.emoji} {meta.label}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, background: meta.color + '33', color: '#6B6B7B', borderRadius: 999, padding: '1px 8px' }}>
+                      {items.length}
+                    </span>
+                  </div>
+                  {items.map((m, i) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '9px 12px', marginBottom: 6,
+                      background: meta.color + '18', borderRadius: 12,
+                      border: `1px solid ${meta.color}55`,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{
+                          width: 22, height: 22, borderRadius: '50%',
+                          background: meta.color, flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <span style={{ fontSize: 12 }}>✓</span>
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#2D2D3A' }}>{m.title}</span>
+                      </div>
+                      {m.achieved_at && (
+                        <span style={{ fontSize: 11, color: '#6B6B7B', fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>
+                          {new Date(m.achieved_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
 
       {/* Growth */}
       {share.show_growth && growth.length > 0 && (

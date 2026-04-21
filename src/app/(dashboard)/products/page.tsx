@@ -9,12 +9,75 @@ import { ExternalLink } from 'lucide-react'
 
 const CATEGORIES = ['Toys', 'Books', 'Clothes', 'Gear', 'Feeding', 'Sleep']
 
+const DEMO_PRODUCTS: Record<string, ProductRecommendation[]> = {
+  Toys: [
+    {
+      name: 'High-contrast black & white rattle',
+      reason: 'Stimulates visual tracking and grasping reflex — perfect for 3-month-old development.',
+      budget: { description: 'Basic rattle set with high-contrast patterns', searchTerm: 'black white baby rattle newborn', price: '₹180–350' },
+      mid: { description: 'Soft fabric activity cube with crinkle sounds', searchTerm: 'baby activity cube 3 months soft', price: '₹650–900' },
+      premium: { description: 'Lamaze Freddie the Firefly multi-sensory toy', searchTerm: 'Lamaze Freddie Firefly baby toy', price: '₹1,800–2,200' },
+    },
+    {
+      name: 'Soft teething ring',
+      reason: 'Soothes gums and encourages hand-to-mouth coordination at this stage.',
+      budget: { description: 'Silicone teething ring BPA-free', searchTerm: 'silicone teething ring baby BPA free', price: '₹120–250' },
+      mid: { description: 'Nuby ice gel teether keys', searchTerm: 'Nuby ice gel teether keys baby', price: '₹450–700' },
+      premium: { description: 'Sophie la Girafe natural rubber teether', searchTerm: 'Sophie Giraffe teether original', price: '₹2,500–3,200' },
+    },
+    {
+      name: 'Baby gym / play mat',
+      reason: 'Encourages tummy time, reaching, and sensory exploration — ideal from 0–6 months.',
+      budget: { description: 'Basic padded play mat with hanging toys', searchTerm: 'baby play gym mat activity 3 months', price: '₹400–700' },
+      mid: { description: 'Fisher-Price Rainforest activity gym', searchTerm: 'Fisher Price Rainforest activity gym', price: '₹1,200–1,800' },
+      premium: { description: 'Tiny Love Meadow Days Super Deluxe gym', searchTerm: 'Tiny Love Super Deluxe gym meadow', price: '₹4,500–6,000' },
+    },
+  ],
+  Feeding: [
+    {
+      name: 'Anti-colic feeding bottle',
+      reason: 'Reduces air intake during feeding, easing colic and gas for bottle-fed babies.',
+      budget: { description: 'Basic BPA-free wide-neck bottle 150ml', searchTerm: 'anti colic baby bottle BPA free wide neck', price: '₹150–300' },
+      mid: { description: 'Philips Avent Natural bottle 260ml', searchTerm: 'Philips Avent Natural bottle 260ml', price: '₹650–950' },
+      premium: { description: 'Dr. Brown\'s Options+ wide-neck bottle', searchTerm: 'Dr Browns Options wide neck bottle', price: '₹1,500–2,000' },
+    },
+    {
+      name: 'Nursing pillow',
+      reason: 'Supports baby\'s weight during feeds, reducing strain on mother\'s arms and back.',
+      budget: { description: 'C-shaped foam nursing pillow with cover', searchTerm: 'nursing pillow breastfeeding C shaped', price: '₹350–600' },
+      mid: { description: 'Mee Mee multi-function nursing pillow', searchTerm: 'Mee Mee nursing pillow multi function', price: '₹800–1,200' },
+      premium: { description: 'My Brest Friend original nursing positioner', searchTerm: 'My Brest Friend nursing pillow original', price: '₹3,000–4,000' },
+    },
+  ],
+  Sleep: [
+    {
+      name: 'White noise machine',
+      reason: 'Mimics womb sounds to help babies fall asleep faster and stay asleep longer.',
+      budget: { description: 'Basic white noise night light combo', searchTerm: 'white noise machine baby sleep', price: '₹400–700' },
+      mid: { description: 'Marpac Dohm sound machine', searchTerm: 'Marpac Dohm white noise baby', price: '₹3,000–4,000' },
+      premium: { description: 'Hatch Baby Rest sound machine + night light', searchTerm: 'Hatch Baby Rest sound machine', price: '₹8,000–10,000' },
+    },
+    {
+      name: 'Swaddle blankets (muslin)',
+      reason: 'Swaddling reduces startle reflex and helps newborns sleep more soundly.',
+      budget: { description: 'Set of 3 soft muslin swaddle wraps', searchTerm: 'muslin swaddle blanket baby set', price: '₹250–450' },
+      mid: { description: 'Aden+Anais muslin swaddle 4-pack', searchTerm: 'Aden Anais muslin swaddle 4 pack', price: '₹1,800–2,500' },
+      premium: { description: 'HALO SleepSack wearable blanket newborn', searchTerm: 'HALO SleepSack wearable blanket newborn', price: '₹3,500–5,000' },
+    },
+  ],
+}
+
+function getDemoProducts(cat: string): ProductRecommendation[] {
+  return DEMO_PRODUCTS[cat] ?? DEMO_PRODUCTS['Toys']
+}
+
 export default function ProductsPage() {
   const { baby, ageMonths } = useBaby()
   const [category, setCategory] = useState('Toys')
   const [products, setProducts] = useState<ProductRecommendation[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isDemo, setIsDemo] = useState(false)
 
   useEffect(() => { if (baby) loadProducts() }, [baby, category])
 
@@ -22,6 +85,7 @@ export default function ProductsPage() {
     if (!baby) return
     setLoading(true)
     setError('')
+    setIsDemo(false)
 
     try {
       const res = await fetch('/api/products', {
@@ -33,10 +97,14 @@ export default function ProductsPage() {
       if (json.products) {
         setProducts(json.products)
       } else {
-        setError('Could not load products. Please try again.')
+        // Fall back to demo products
+        setProducts(getDemoProducts(category))
+        setIsDemo(true)
       }
     } catch {
-      setError('Network error.')
+      // Fall back to demo products on network error
+      setProducts(getDemoProducts(category))
+      setIsDemo(true)
     }
     setLoading(false)
   }
@@ -61,6 +129,15 @@ export default function ProductsPage() {
       </div>
 
       <div style={{ padding: '0 16px 16px' }}>
+        {isDemo && !loading && products.length > 0 && (
+          <div style={{ background: '#FEF9C3', border: '1.5px solid #F59E0B', borderRadius: 12, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>✨</span>
+            <p style={{ fontSize: 13, color: '#92400E', fontWeight: 600 }}>
+              Demo products — add a Gemini API key to get personalised recommendations
+            </p>
+          </div>
+        )}
+
         {loading && (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <p style={{ fontSize: 32, marginBottom: 12 }}>🛍️</p>
