@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import AppBar from '@/components/layout/AppBar'
 import { useBaby } from '@/contexts/BabyContext'
 import { createClient } from '@/lib/supabase'
-import { LogOut, Share2, Copy, Check } from 'lucide-react'
+import { LogOut, Share2, Copy, Check, Pencil, X } from 'lucide-react'
 
 const SHARE_OPTIONS = [
   { key: 'show_feeding',    emoji: '🍼', label: 'Feeding activity' },
@@ -20,6 +20,16 @@ type SharePrefs = Record<typeof SHARE_OPTIONS[number]['key'], boolean>
 export default function SettingsPage() {
   const { baby, refreshBaby } = useBaby()
   const router = useRouter()
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    gender: '',
+    date_of_birth: '',
+    due_date: '',
+    parent1_name: '',
+    parent2_name: '',
+  })
   const [shareToken, setShareToken] = useState<string | null>(null)
   const [generatingLink, setGeneratingLink] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -30,6 +40,36 @@ export default function SettingsPage() {
     show_milestones: true,
     show_growth: true,
   })
+
+  function startEditing() {
+    if (!baby) return
+    setEditForm({
+      name: baby.name ?? '',
+      gender: baby.gender ?? '',
+      date_of_birth: baby.date_of_birth ?? '',
+      due_date: baby.due_date ?? '',
+      parent1_name: baby.parent1_name ?? '',
+      parent2_name: baby.parent2_name ?? '',
+    })
+    setEditing(true)
+  }
+
+  async function saveProfile() {
+    if (!baby) return
+    setSaving(true)
+    const supabase = createClient()
+    await supabase.from('babies').update({
+      name: editForm.name.trim(),
+      gender: editForm.gender,
+      date_of_birth: editForm.date_of_birth || null,
+      due_date: editForm.due_date || null,
+      parent1_name: editForm.parent1_name.trim(),
+      parent2_name: editForm.parent2_name.trim() || null,
+    }).eq('id', baby.id)
+    await refreshBaby()
+    setSaving(false)
+    setEditing(false)
+  }
 
   async function signOut() {
     const supabase = createClient()
@@ -80,14 +120,67 @@ export default function SettingsPage() {
         {/* Baby Profile */}
         {baby && (
           <section style={{ marginBottom: 24 }}>
-            <SectionHeader title="Baby Profile" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingLeft: 4 }}>
+              <p style={{ fontSize: 12, fontWeight: 800, color: '#9B8EC4', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Baby Profile</p>
+              {!editing ? (
+                <button onClick={startEditing} style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#EDE9F8', color: '#9B8EC4', border: 'none', borderRadius: 20, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <Pencil size={12} /> Edit
+                </button>
+              ) : (
+                <button onClick={() => setEditing(false)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#F5F5F7', color: '#6B6B7B', border: 'none', borderRadius: 20, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <X size={12} /> Cancel
+                </button>
+              )}
+            </div>
+
             <Card>
-              <InfoRow label="Name" value={baby.name} />
-              <InfoRow label="Status" value={baby.status === 'born' ? '👶 Born' : '🤰 Expecting'} />
-              {baby.date_of_birth && <InfoRow label="Birth date" value={new Date(baby.date_of_birth).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} />}
-              {baby.due_date && <InfoRow label="Due date" value={new Date(baby.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} />}
-              <InfoRow label="Parent 1" value={baby.parent1_name} />
-              {baby.parent2_name && <InfoRow label="Parent 2" value={baby.parent2_name} />}
+              {!editing ? (
+                <>
+                  <InfoRow label="Name" value={baby.name} />
+                  <InfoRow label="Status" value={baby.status === 'born' ? '👶 Born' : '🤰 Expecting'} />
+                  <InfoRow label="Gender" value={baby.gender === 'girl' ? '👧 Girl' : baby.gender === 'boy' ? '👦 Boy' : '🌈 TBD'} />
+                  {baby.date_of_birth && <InfoRow label="Birth date" value={new Date(baby.date_of_birth).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} />}
+                  {baby.due_date && <InfoRow label="Due date" value={new Date(baby.due_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })} />}
+                  <InfoRow label="Parent 1" value={baby.parent1_name} />
+                  {baby.parent2_name && <InfoRow label="Parent 2" value={baby.parent2_name} />}
+                </>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <EditField label="Baby's name" value={editForm.name} onChange={v => setEditForm(f => ({ ...f, name: v }))} placeholder="e.g. Sonakshi" />
+
+                  <div>
+                    <p style={editLabelStyle}>Gender</p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[{ val: 'boy', label: '👦 Boy' }, { val: 'girl', label: '👧 Girl' }, { val: 'unknown', label: '🌈 TBD' }].map(g => (
+                        <button key={g.val} onClick={() => setEditForm(f => ({ ...f, gender: g.val }))}
+                          style={{ flex: 1, padding: '8px 4px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', border: '1.5px solid', borderColor: editForm.gender === g.val ? '#9B8EC4' : '#EBEBF0', background: editForm.gender === g.val ? '#EDE9F8' : 'white', color: editForm.gender === g.val ? '#9B8EC4' : '#6B6B7B' }}>
+                          {g.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {baby.status === 'born' && (
+                    <div>
+                      <p style={editLabelStyle}>Birth date</p>
+                      <input type="date" value={editForm.date_of_birth} onChange={e => setEditForm(f => ({ ...f, date_of_birth: e.target.value }))} style={editInputStyle} />
+                    </div>
+                  )}
+                  {baby.status === 'expecting' && (
+                    <div>
+                      <p style={editLabelStyle}>Due date</p>
+                      <input type="date" value={editForm.due_date} onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))} style={editInputStyle} />
+                    </div>
+                  )}
+
+                  <EditField label="Parent 1 name" value={editForm.parent1_name} onChange={v => setEditForm(f => ({ ...f, parent1_name: v }))} placeholder="e.g. Priya" />
+                  <EditField label="Parent 2 name (optional)" value={editForm.parent2_name} onChange={v => setEditForm(f => ({ ...f, parent2_name: v }))} placeholder="e.g. Rahul" />
+
+                  <button onClick={saveProfile} disabled={saving || !editForm.name.trim() || !editForm.parent1_name.trim()} style={{ width: '100%', background: '#9B8EC4', color: 'white', border: 'none', borderRadius: 12, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4, opacity: saving ? 0.7 : 1 }}>
+                    {saving ? 'Saving…' : 'Save Changes'}
+                  </button>
+                </div>
+              )}
             </Card>
           </section>
         )}
@@ -226,4 +319,29 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <span style={{ fontSize: 14, fontWeight: 700, color: '#2D2D3A' }}>{value}</span>
     </div>
   )
+}
+
+function EditField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div>
+      <p style={editLabelStyle}>{label}</p>
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={editInputStyle}
+      />
+    </div>
+  )
+}
+
+const editLabelStyle: React.CSSProperties = {
+  fontSize: 11, fontWeight: 800, color: '#9B8EC4', textTransform: 'uppercase',
+  letterSpacing: '0.06em', marginBottom: 6,
+}
+
+const editInputStyle: React.CSSProperties = {
+  width: '100%', padding: '11px 14px', border: '1.5px solid #EBEBF0',
+  borderRadius: 12, fontSize: 14, fontFamily: 'inherit', color: '#2D2D3A',
+  background: '#FAFAF8', outline: 'none', boxSizing: 'border-box',
 }
