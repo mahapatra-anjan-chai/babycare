@@ -106,13 +106,13 @@ export default function VaccinesPage() {
     return v.status
   }
 
-  function statusStyle(status: string): { bg: string; border: string; color: string; label: string } {
+  function statusBadge(status: string): { bg: string; color: string; label: string } {
     switch (status) {
-      case 'done':     return { bg: '#DCFCE7', border: '#22C55E', color: '#15803D', label: '✓ Done' }
-      case 'snoozed':  return { bg: '#FEF9C3', border: '#F59E0B', color: '#92400E', label: '⏸ Snoozed' }
-      case 'overdue':  return { bg: '#FEE2E2', border: '#EF4444', color: '#B91C1C', label: '⚠️ Overdue' }
-      case 'due_soon': return { bg: '#FEF3C7', border: '#F59E0B', color: '#92400E', label: `Due soon` }
-      default:         return { bg: '#F5F5F7', border: '#EBEBF0', color: '#6B6B7B', label: 'Upcoming' }
+      case 'done':     return { bg: '#DCFCE7', color: '#15803D', label: '✓ Done' }
+      case 'snoozed':  return { bg: '#FEF9C3', color: '#92400E', label: '⏸ Snoozed' }
+      case 'overdue':  return { bg: '#FEE2E2', color: '#B91C1C', label: '⚠️ Overdue' }
+      case 'due_soon': return { bg: '#FEF3C7', color: '#92400E', label: '🕐 Due soon' }
+      default:         return { bg: '#F5F5F7', color: '#6B6B7B', label: 'Upcoming' }
     }
   }
 
@@ -147,7 +147,7 @@ export default function VaccinesPage() {
 
               {vaccines.map(vaccine => {
                 const status = getEffectiveStatus(vaccine)
-                const style = statusStyle(status)
+                const badge = statusBadge(status)
                 const isSaving = saving === vaccine.vaccineName
                 const isDone = status === 'done'
 
@@ -155,31 +155,45 @@ export default function VaccinesPage() {
                   <div
                     key={vaccine.vaccineName}
                     style={{
-                      background: style.bg, border: `1.5px solid ${style.border}`,
+                      background: isDone ? '#DCFCE7' : 'white',
+                      border: `1.5px solid ${isDone ? '#22C55E' : '#EBEBF0'}`,
                       borderRadius: 14, padding: '12px 14px', marginBottom: 8,
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ flex: 1 }}>
-                        <p style={{ fontSize: 14, fontWeight: 700, color: '#2D2D3A' }}>{vaccine.vaccineName}</p>
-                        <p style={{ fontSize: 11, color: style.color, fontWeight: 700, marginTop: 3 }}>{style.label}</p>
-                        {status === 'due_soon' && <p style={{ fontSize: 11, color: '#92400E' }}>in {vaccine.daysUntilDue} days</p>}
-                        {status === 'overdue' && <p style={{ fontSize: 11, color: '#B91C1C' }}>{Math.abs(vaccine.daysUntilDue)} days overdue</p>}
+                        <p style={{ fontSize: 14, fontWeight: 700, color: isDone ? '#15803D' : '#2D2D3A' }}>
+                          {vaccine.vaccineName}
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999,
+                            background: badge.bg, color: badge.color,
+                          }}>
+                            {badge.label}
+                          </span>
+                          {status === 'due_soon' && (
+                            <span style={{ fontSize: 11, color: '#92400E' }}>in {vaccine.daysUntilDue} days</span>
+                          )}
+                          {status === 'overdue' && (
+                            <span style={{ fontSize: 11, color: '#B91C1C' }}>{Math.abs(vaccine.daysUntilDue)} days overdue</span>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 10 }}>
                         {!isDone && (
                           <button
                             onClick={() => markVaccine(vaccine, 'done')}
                             disabled={!!saving}
                             style={{
                               background: '#22C55E', color: 'white', border: 'none',
-                              borderRadius: 10, padding: '6px 12px', fontSize: 12,
+                              borderRadius: 10, padding: '6px 14px', fontSize: 12,
                               fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                               display: 'flex', alignItems: 'center', gap: 4,
                               opacity: isSaving ? 0.5 : 1,
                             }}
                           >
-                            <Check size={12} />Done
+                            <Check size={12} /> Done
                           </button>
                         )}
                         {isDone && (
