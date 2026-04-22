@@ -186,14 +186,15 @@ export default function VaccinesPage() {
                             onClick={() => markVaccine(vaccine, 'done')}
                             disabled={!!saving}
                             style={{
-                              background: '#22C55E', color: 'white', border: 'none',
+                              background: 'white', color: '#9B8EC4',
+                              border: '1.5px solid #9B8EC4',
                               borderRadius: 10, padding: '6px 14px', fontSize: 12,
                               fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                               display: 'flex', alignItems: 'center', gap: 4,
                               opacity: isSaving ? 0.5 : 1,
                             }}
                           >
-                            <Check size={12} /> Done
+                            <Check size={12} /> Mark done
                           </button>
                         )}
                         {isDone && (
@@ -201,7 +202,7 @@ export default function VaccinesPage() {
                             onClick={() => markVaccine(vaccine, 'pending')}
                             disabled={!!saving}
                             style={{
-                              background: '#EBEBF0', color: '#6B6B7B', border: 'none',
+                              background: 'transparent', color: '#15803D', border: '1.5px solid #22C55E',
                               borderRadius: 10, padding: '6px 12px', fontSize: 12,
                               fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                             }}
