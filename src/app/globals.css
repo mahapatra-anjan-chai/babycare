@@ -174,18 +174,14 @@
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-/* More sheet */
+/* More sheet backdrop — invisible hit-area to close on outside tap */
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  max-width: 430px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(30, 20, 50, 0.45);
+  background: transparent;
   z-index: 55;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.28s ease;
 }
 .sheet-backdrop.open {
   opacity: 1;
