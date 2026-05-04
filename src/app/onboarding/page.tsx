@@ -31,7 +31,7 @@ export default function OnboardingPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    const { error: insertError } = await supabase.from('babies').insert({
+    const { data: newBaby, error: insertError } = await supabase.from('babies').insert({
       user_id: user.id,
       name: babyName || (status === 'expecting' ? 'Baby' : 'My Baby'),
       gender,
@@ -40,13 +40,16 @@ export default function OnboardingPage() {
       due_date: status === 'expecting' ? dueDate : null,
       parent1_name: parent1.trim(),
       parent2_name: parent2.trim() || null,
-    })
+    }).select('id').single()
 
-    if (insertError) {
+    if (insertError || !newBaby) {
       setError('Something went wrong. Please try again.')
       setSaving(false)
       return
     }
+
+    // Link both allowed email addresses to this baby (security definer bypasses RLS)
+    await supabase.rpc('link_baby_to_access', { p_baby_id: newBaby.id })
 
     router.push('/')
   }

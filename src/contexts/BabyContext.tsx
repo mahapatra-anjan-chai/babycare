@@ -104,10 +104,23 @@ export function BabyProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    // Load baby via baby_access (supports shared baby between two users)
+    const { data: access } = await supabase
+      .from('baby_access')
+      .select('baby_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!access?.baby_id) {
+      setLoading(false)
+      router.push('/onboarding')
+      return
+    }
+
     const { data: babyData } = await supabase
       .from('babies')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('id', access.baby_id)
       .single()
 
     if (!babyData) {

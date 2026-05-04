@@ -1,6 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Only these two email addresses may access the app
+const ALLOWED_EMAILS = [
+  'mahapatra.anjan@gmail.com',
+  'sonakshi.sahu@gmail.com',
+]
+
 export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
@@ -44,6 +50,12 @@ export async function middleware(request: NextRequest) {
   // Not logged in → send to login
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  // Logged in but not on the allowlist → sign out + show error
+  if (user && !ALLOWED_EMAILS.includes(user.email ?? '')) {
+    await supabase.auth.signOut()
+    return NextResponse.redirect(new URL('/login?error=unauthorized', request.url))
   }
 
   // Already logged in → skip login page

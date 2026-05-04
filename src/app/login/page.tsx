@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { BabycareLogo } from '@/components/layout/AppBar'
 
-export default function LoginPage() {
+function LoginContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const searchParams = useSearchParams()
+  const urlError = searchParams.get('error')
 
   async function signInWithGoogle() {
     setLoading(true)
@@ -38,16 +41,33 @@ export default function LoginPage() {
         every little moment
       </p>
 
-      <div style={{ width: '100%', marginTop: 48 }}>
+      {/* Unauthorised error */}
+      {urlError === 'unauthorized' && (
+        <div style={{
+          width: '100%', marginTop: 32, background: '#FEF2F2', border: '1.5px solid #FCA5A5',
+          borderRadius: 14, padding: '14px 18px',
+        }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#B91C1C', marginBottom: 4 }}>
+            Access restricted
+          </p>
+          <p style={{ fontSize: 13, color: '#B91C1C', lineHeight: 1.5 }}>
+            This app is private — only Anjan &amp; Sonakshi can sign in.
+            Please use your registered Google account.
+          </p>
+        </div>
+      )}
+
+      <div style={{ width: '100%', marginTop: urlError ? 20 : 48 }}>
         <button
           onClick={signInWithGoogle}
           disabled={loading}
           style={{
             width: '100%', background: 'white', border: '1.5px solid #EBEBF0',
             borderRadius: 16, padding: '16px 24px', fontSize: 16, fontWeight: 700,
-            cursor: 'pointer', fontFamily: 'inherit', color: '#2D2D3A',
+            cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', color: '#2D2D3A',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
             boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+            opacity: loading ? 0.7 : 1,
           }}
         >
           {!loading && (
@@ -67,9 +87,16 @@ export default function LoginPage() {
       </div>
 
       <p style={{ fontSize: 12, color: '#9B8EC4', textAlign: 'center', marginTop: 32, lineHeight: 1.6 }}>
-        Free forever · No credit card required<br />
-        All data encrypted · Built with ❤️ for Indian parents
+        Private family app · Anjan &amp; Sonakshi only 💜
       </p>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   )
 }
