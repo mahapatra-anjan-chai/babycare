@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, Baby, Moon, Droplets, Syringe, Plus, ChevronRight, X } from 'lucide-react'
+import { Settings, Baby, Moon, Droplets, Syringe, Plus, ChevronRight, X, ChevronDown, ChevronUp, CheckCircle2, Circle } from 'lucide-react'
 import { useBaby } from '@/contexts/BabyContext'
 import { BabycareLogo } from '@/components/layout/AppBar'
 import { createClient } from '@/lib/supabase'
@@ -200,6 +200,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Newborn Prep Checklist — shown for first 6 months */}
+      {ageWeeks < 26 && <NewbornPrepChecklist babyId={baby.id} babyName={baby.name} />}
+
       {/* Smart Nudge */}
       {!nudgeDismissed && avgFeedsPerDay > 0 && (
         <div style={{ margin: '14px 16px 0', background: '#EDE9F8', borderRadius: 16, padding: '14px 16px' }}>
@@ -384,6 +387,118 @@ function ExpectingDashboard({ baby }: { baby: { name: string; due_date: string |
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+const PREP_ITEMS = [
+  { id: 'pediatrician',    emoji: '👨‍⚕️', label: 'Registered with a paediatrician',        category: 'Health' },
+  { id: 'vitamin_d',       emoji: '☀️',  label: 'Vitamin D drops started (IAP: from day 1)', category: 'Health' },
+  { id: 'vaccines',        emoji: '💉',  label: 'Vaccination schedule reviewed',             category: 'Health' },
+  { id: 'safe_sleep',      emoji: '🛏️', label: 'Safe sleep environment ready',              category: 'Safety' },
+  { id: 'car_seat',        emoji: '🚗',  label: 'Car seat installed correctly',              category: 'Safety' },
+  { id: 'emergency',       emoji: '📞',  label: 'Emergency contacts saved (doctor, clinic)', category: 'Safety' },
+  { id: 'feeding',         emoji: '🍼',  label: 'Feeding routine established',               category: 'Feeding' },
+  { id: 'diaper_station',  emoji: '💧',  label: 'Diaper changing station stocked',           category: 'Home' },
+  { id: 'nursery',         emoji: '🧸',  label: 'Nursery / sleep area set up',               category: 'Home' },
+  { id: 'monitor',         emoji: '📡',  label: 'Baby monitor working',                       category: 'Home' },
+  { id: 'birth_cert',      emoji: '📄',  label: 'Birth certificate applied for',             category: 'Admin' },
+  { id: 'insurance',       emoji: '🏥',  label: 'Baby added to health insurance',            category: 'Admin' },
+]
+
+function NewbornPrepChecklist({ babyId, babyName }: { babyId: string; babyName: string }) {
+  const [checked, setChecked] = useState<Record<string, boolean>>({})
+  const [open, setOpen] = useState(true)
+  const storageKey = `babycare_prep_${babyId}`
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey)
+      if (saved) setChecked(JSON.parse(saved))
+    } catch {}
+  }, [storageKey])
+
+  const toggle = useCallback((id: string) => {
+    setChecked(prev => {
+      const next = { ...prev, [id]: !prev[id] }
+      try { localStorage.setItem(storageKey, JSON.stringify(next)) } catch {}
+      return next
+    })
+  }, [storageKey])
+
+  const done = PREP_ITEMS.filter(i => checked[i.id]).length
+  const total = PREP_ITEMS.length
+  const pct = Math.round((done / total) * 100)
+
+  return (
+    <div style={{ margin: '14px 16px 0', background: 'white', border: '1.5px solid #EBEBF0', borderRadius: 18, overflow: 'hidden' }}>
+      {/* Header */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+          padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer',
+          fontFamily: 'inherit', textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: 20 }}>🧾</span>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 14, fontWeight: 800, color: '#2D2D3A' }}>Newborn Prep List</p>
+          <p style={{ fontSize: 12, color: '#6B6B7B', marginTop: 2 }}>
+            {done}/{total} done · {pct}% complete
+          </p>
+        </div>
+        {open ? <ChevronUp size={18} color="#9B8EC4" /> : <ChevronDown size={18} color="#9B8EC4" />}
+      </button>
+
+      {/* Progress bar */}
+      <div style={{ height: 4, background: '#EBEBF0', margin: '0 16px' }}>
+        <div style={{
+          height: '100%', borderRadius: 999,
+          background: pct === 100 ? '#22C55E' : '#9B8EC4',
+          width: `${pct}%`, transition: 'width 0.3s ease',
+        }} />
+      </div>
+
+      {/* Items */}
+      {open && (
+        <div style={{ padding: '8px 0 12px' }}>
+          {PREP_ITEMS.map(item => {
+            const isDone = !!checked[item.id]
+            return (
+              <button
+                key={item.id}
+                onClick={() => toggle(item.id)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 16px', background: 'none', border: 'none',
+                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                }}
+              >
+                {isDone
+                  ? <CheckCircle2 size={20} color="#22C55E" strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                  : <Circle size={20} color="#D1D5DB" strokeWidth={2} style={{ flexShrink: 0 }} />
+                }
+                <span style={{ fontSize: 14, color: isDone ? '#6B6B7B' : '#2D2D3A', fontWeight: 600, textDecoration: isDone ? 'line-through' : 'none', flex: 1, lineHeight: 1.4 }}>
+                  {item.emoji} {item.label}
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#9B8EC4', background: '#EDE9F8', padding: '2px 8px', borderRadius: 999, flexShrink: 0 }}>
+                  {item.category}
+                </span>
+              </button>
+            )
+          })}
+
+          {pct === 100 && (
+            <div style={{ margin: '8px 16px 0', background: '#DCFCE7', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CheckCircle2 size={18} color="#22C55E" />
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#15803D' }}>
+                All done! {babyName} is all set 💜
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

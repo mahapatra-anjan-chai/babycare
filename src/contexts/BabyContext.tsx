@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase'
 import { getAgeInWeeks, getAgeInMonths, getWeeksUntilDue, getWeeksPregnant } from '@/lib/utils'
 
@@ -53,9 +53,13 @@ const BabyContext = createContext<BabyContextValue>({
   refreshBaby: async () => {},
 })
 
+// Routes where BabyContext should never redirect (handled by middleware or the page itself)
+const PUBLIC_PATHS = ['/login', '/onboarding', '/auth', '/baby']
+
 export function BabyProvider({ children }: { children: ReactNode }) {
   const supabase = createClient()
   const router = useRouter()
+  const pathname = usePathname()
   const [baby, setBaby] = useState<Baby | null>(null)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
@@ -97,10 +101,12 @@ export function BabyProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       return
     }
+    const isPublicPath = PUBLIC_PATHS.some(p => pathname.startsWith(p))
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       setLoading(false)
-      router.push('/login')
+      if (!isPublicPath) router.push('/login')
       return
     }
 
@@ -113,7 +119,7 @@ export function BabyProvider({ children }: { children: ReactNode }) {
 
     if (!access?.baby_id) {
       setLoading(false)
-      router.push('/onboarding')
+      if (!isPublicPath) router.push('/onboarding')
       return
     }
 
@@ -125,7 +131,7 @@ export function BabyProvider({ children }: { children: ReactNode }) {
 
     if (!babyData) {
       setLoading(false)
-      router.push('/onboarding')
+      if (!isPublicPath) router.push('/onboarding')
       return
     }
     setBaby(babyData)
