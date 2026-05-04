@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase'
 import { getAgeInWeeks, getAgeInMonths, getWeeksUntilDue, getWeeksPregnant } from '@/lib/utils'
 
@@ -54,6 +55,7 @@ const BabyContext = createContext<BabyContextValue>({
 
 export function BabyProvider({ children }: { children: ReactNode }) {
   const supabase = createClient()
+  const router = useRouter()
   const [baby, setBaby] = useState<Baby | null>(null)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
@@ -96,7 +98,11 @@ export function BabyProvider({ children }: { children: ReactNode }) {
       return
     }
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setLoading(false); return }
+    if (!user) {
+      setLoading(false)
+      router.push('/login')
+      return
+    }
 
     const { data: babyData } = await supabase
       .from('babies')
@@ -104,7 +110,11 @@ export function BabyProvider({ children }: { children: ReactNode }) {
       .eq('user_id', user.id)
       .single()
 
-    if (!babyData) { setLoading(false); return }
+    if (!babyData) {
+      setLoading(false)
+      router.push('/onboarding')
+      return
+    }
     setBaby(babyData)
 
     // Load 7-day averages in parallel
