@@ -19,6 +19,12 @@ export interface Baby {
   created_at: string
 }
 
+export interface TodayMemoryPhoto {
+  url: string
+  caption: string | null
+  takenAt: string
+}
+
 export interface BabyContextValue {
   baby: Baby | null
   loading: boolean
@@ -33,6 +39,8 @@ export interface BabyContextValue {
   lastMilestoneAchieved: string | null
   latestWeight: number | null
   latestHeight: number | null
+  latestPhotoUrl: string | null
+  todayMemoryPhoto: TodayMemoryPhoto | null
   refreshBaby: () => Promise<void>
 }
 
@@ -50,6 +58,8 @@ const BabyContext = createContext<BabyContextValue>({
   lastMilestoneAchieved: null,
   latestWeight: null,
   latestHeight: null,
+  latestPhotoUrl: null,
+  todayMemoryPhoto: null,
   refreshBaby: async () => {},
 })
 
@@ -70,6 +80,8 @@ export function BabyProvider({ children }: { children: ReactNode }) {
     lastMilestoneAchieved: null as string | null,
     latestWeight: null as number | null,
     latestHeight: null as number | null,
+    latestPhotoUrl: null as string | null,
+    todayMemoryPhoto: null as TodayMemoryPhoto | null,
   })
 
   async function loadBaby() {
@@ -97,6 +109,8 @@ export function BabyProvider({ children }: { children: ReactNode }) {
         lastMilestoneAchieved: 'Smiles responsively at faces',
         latestWeight: 5.4,
         latestHeight: 61,
+        latestPhotoUrl: null,
+        todayMemoryPhoto: null,
       })
       setLoading(false)
       return
@@ -136,14 +150,20 @@ export function BabyProvider({ children }: { children: ReactNode }) {
     }
     setBaby(babyData)
 
-    // Load 7-day averages in parallel
+    // Load 7-day averages + photo data in parallel
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString()
-    const [feedRes, sleepRes, diaperRes, growthRes, milestoneRes] = await Promise.all([
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const MM = String(now.getMonth() + 1).padStart(2, '0')
+    const DD = String(now.getDate()).padStart(2, '0')
+    const [feedRes, sleepRes, diaperRes, growthRes, milestoneRes, latestPhotoRes, memoryPhotoRes] = await Promise.all([
       supabase.from('feedings').select('type, logged_at').eq('baby_id', babyData.id).gte('logged_at', sevenDaysAgo),
       supabase.from('sleeps').select('started_at, ended_at').eq('baby_id', babyData.id).gte('started_at', sevenDaysAgo),
       supabase.from('diapers').select('logged_at').eq('baby_id', babyData.id).gte('logged_at', sevenDaysAgo),
       supabase.from('growth_records').select('weight_kg, height_cm').eq('baby_id', babyData.id).order('measured_at', { ascending: false }).limit(1),
       supabase.from('milestones').select('title').eq('baby_id', babyData.id).order('achieved_at', { ascending: false }).limit(1),
+      supabase.from('baby_photos').select('photo_url').eq('baby_id', babyData.id).order('taken_at', { ascending: false }).limit(1),
+      supabase.from('baby_photos').select('photo_url, caption, taken_at').eq('baby_id', babyData.id).like('taken_at', `%-${MM}-${DD}`).lt('taken_at', `${currentYear}-01-01`).order('taken_at', { ascending: false }).limit(1),
     ])
 
     const avgFeedsPerDay = (feedRes.data?.length ?? 0) / 7
@@ -155,6 +175,7 @@ export function BabyProvider({ children }: { children: ReactNode }) {
     const avgDiapersPerDay = (diaperRes.data?.length ?? 0) / 7
     const lastFeed = feedRes.data?.sort((a, b) => new Date(b.logged_at).getTime() - new Date(a.logged_at).getTime())[0]
 
+    const memoryRow = memoryPhotoRes.data?.[0]
     setStats({
       avgFeedsPerDay: Math.round(avgFeedsPerDay * 10) / 10,
       avgSleepHoursPerDay: Math.round(avgSleepHoursPerDay * 10) / 10,
@@ -163,6 +184,10 @@ export function BabyProvider({ children }: { children: ReactNode }) {
       lastMilestoneAchieved: milestoneRes.data?.[0]?.title ?? null,
       latestWeight: growthRes.data?.[0]?.weight_kg ?? null,
       latestHeight: growthRes.data?.[0]?.height_cm ?? null,
+      latestPhotoUrl: latestPhotoRes.data?.[0]?.photo_url ?? null,
+      todayMemoryPhoto: memoryRow
+        ? { url: memoryRow.photo_url, caption: memoryRow.caption ?? null, takenAt: memoryRow.taken_at }
+        : null,
     })
     setLoading(false)
   }

@@ -20,7 +20,7 @@ interface ActivityEntry {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { baby, loading, ageWeeks, ageMonths, avgFeedsPerDay, avgSleepHoursPerDay } = useBaby()
+  const { baby, loading, ageWeeks, ageMonths, avgFeedsPerDay, avgSleepHoursPerDay, latestPhotoUrl, todayMemoryPhoto } = useBaby()
   const [activities, setActivities] = useState<ActivityEntry[]>([])
   const [stats, setStats] = useState({ feeds: 0, sleep: 0, diapers: 0, lastFeed: '', lastSleep: '', lastDiaper: '' })
   const [vaccineAlert, setVaccineAlert] = useState<string | null>(null)
@@ -148,7 +148,10 @@ export default function DashboardPage() {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <BabycareLogo size={36} />
+            {latestPhotoUrl
+              ? <img src={latestPhotoUrl} alt={baby?.name ?? 'Baby'} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2.5px solid #9B8EC4', flexShrink: 0 }} />
+              : <BabycareLogo size={36} />
+            }
             <div>
               <p style={{ fontSize: 12, color: '#9B8EC4', fontWeight: 700, letterSpacing: '0.05em' }}>BABYCARE</p>
               <h1 style={{ fontSize: 22, fontWeight: 800, color: '#2D2D3A', lineHeight: 1.1 }}>
@@ -199,6 +202,36 @@ export default function DashboardPage() {
           <QuickLogBtn emoji="+" label="More" onClick={() => router.push('/feeding')} color="#EDE9F8" />
         </div>
       </div>
+
+      {/* On This Day memory card */}
+      {todayMemoryPhoto && (
+        <div
+          onClick={() => router.push('/photos')}
+          style={{
+            margin: '14px 16px 0', background: 'white', borderRadius: 20, padding: 16,
+            border: '1.5px solid #F9A8D4', cursor: 'pointer',
+            display: 'flex', gap: 14, alignItems: 'center',
+          }}
+        >
+          <img
+            src={todayMemoryPhoto.url}
+            alt="Memory"
+            style={{ width: 64, height: 64, borderRadius: 14, objectFit: 'cover', flexShrink: 0 }}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: '#EC4899', marginBottom: 3 }}>📸 On this day</p>
+            <p style={{ fontSize: 13, color: '#2D2D3A', fontWeight: 600 }}>
+              {new Date(todayMemoryPhoto.takenAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+            {todayMemoryPhoto.caption && (
+              <p style={{ fontSize: 12, color: '#6B6B7B', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {todayMemoryPhoto.caption}
+              </p>
+            )}
+          </div>
+          <ChevronRight size={16} color="#EC4899" style={{ flexShrink: 0 }} />
+        </div>
+      )}
 
       {/* Newborn Prep Checklist — shown for first 6 months */}
       {ageWeeks < 26 && <NewbornPrepChecklist babyId={baby.id} babyName={baby.name} />}

@@ -39,12 +39,13 @@ export default async function GrandparentPage({ params }: { params: Promise<{ to
   const today = new Date()
   const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
 
-  const [feedRes, sleepRes, diaperRes, milestoneRes, growthRes] = await Promise.all([
+  const [feedRes, sleepRes, diaperRes, milestoneRes, growthRes, photoRes] = await Promise.all([
     share.show_feeding ? supabase.from('feedings').select('*').eq('baby_id', share.baby_id).gte('logged_at', startOfDay) : { data: [] },
     share.show_sleep ? supabase.from('sleeps').select('*').eq('baby_id', share.baby_id).gte('started_at', startOfDay) : { data: [] },
     share.show_diapers ? supabase.from('diapers').select('*').eq('baby_id', share.baby_id).gte('logged_at', startOfDay) : { data: [] },
     share.show_milestones ? supabase.from('milestones').select('title, category, achieved_at').eq('baby_id', share.baby_id).order('achieved_at', { ascending: false }) : { data: [] },
     share.show_growth ? supabase.from('growth_records').select('weight_kg, height_cm, measured_at').eq('baby_id', share.baby_id).order('measured_at', { ascending: false }).limit(1) : { data: [] },
+    supabase.from('baby_photos').select('photo_url, caption, taken_at').eq('baby_id', share.baby_id).order('taken_at', { ascending: false }).limit(3),
   ])
 
   const feeds = feedRes.data ?? []
@@ -52,6 +53,7 @@ export default async function GrandparentPage({ params }: { params: Promise<{ to
   const diapers = diaperRes.data ?? []
   const milestones = (milestoneRes.data ?? []) as Array<{ title: string; category: string; achieved_at: string }>
   const growth = (growthRes.data ?? []) as Array<{ weight_kg: number; height_cm: number }>
+  const recentPhotos = (photoRes.data ?? []) as Array<{ photo_url: string; caption: string | null; taken_at: string }>
 
   const totalSleepHrs = sleeps.reduce((sum: number, s) => {
     if (!s.ended_at) return sum
@@ -167,6 +169,23 @@ export default async function GrandparentPage({ params }: { params: Promise<{ to
           </div>
         )
       })()}
+
+      {/* Recent Photos */}
+      {recentPhotos.length > 0 && (
+        <div style={{ background: 'white', borderRadius: 24, padding: 24, marginBottom: 16, border: '1.5px solid #EBEBF0' }}>
+          <h2 style={{ fontSize: 15, fontWeight: 800, color: '#9B8EC4', marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Recent Photos 📷</h2>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {recentPhotos.map((p, i) => (
+              <img
+                key={i}
+                src={p.photo_url}
+                alt={p.caption ?? ''}
+                style={{ width: 88, height: 88, borderRadius: 14, objectFit: 'cover', flex: '0 0 88px' }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Growth */}
       {share.show_growth && growth.length > 0 && (
